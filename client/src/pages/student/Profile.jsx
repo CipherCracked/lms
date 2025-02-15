@@ -7,10 +7,13 @@ import { AvatarFallback } from '@radix-ui/react-avatar'
 import { Loader2 } from 'lucide-react'
 import React from 'react'
 import Course from './Course'
+import { useLoadUserQuery } from '@/features/api/authApi'
 
 const Profile = () => {
-    const isLoading = 1;
-    const enrolledCourses = [1, 2];
+    const {data, isLoading} =useLoadUserQuery();
+    console.log(data);
+    // const isLoading = 1;
+    const enrolledCourses = [1];
     return (
         <div className='my-24 max-w-4xl mx-auto px-4'>
             <h1 className='font-bold text-2xl text-center md:text-left'>PROFILE</h1>
