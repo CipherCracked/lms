@@ -105,36 +105,52 @@ export const getUserProfile = async(req, res)=>{
     }
 }
 
-export const updateProfile = async(req, res)=>{
+export const updateProfile = async (req, res) => {
     try {
-        const userId=req.id;
-        const {name}=req.body;
-        const profilePhoto=req.file;
+        const userId = req.id;
+        const { name } = req.body;
+        const profilePhoto = req.file; // File from multer
+
+        // Find user in database
         const user = await User.findById(userId);
-        if (!user){
+        if (!user) {
             return res.status(404).json({
-                message:"User not found",
-                success:false,
-            })
+                success: false,
+                message: "User not found",
+            });
         }
-        if (user.photoURL){
-            const publicID = user.photoURL.split("/").pop().split(".")[0]
-            deleteMediaFromCloudinary(publicID);
+
+        let photoURL = user.photoURL; // Use the correct field name
+
+        // If a new profile photo is uploaded
+        if (profilePhoto) {
+            // Delete old photo from Cloudinary if exists
+            if (user.photoURL) {
+                const publicId = user.photoURL.split("/").pop().split(".")[0];
+                await deleteMediaFromCloudinary(publicId);
+            }
+
+            // Upload new photo to Cloudinary
+            const cloudResponse = await uploadMedia(profilePhoto.path);
+            photoURL = cloudResponse.secure_url; // Get new image URL
         }
-        const cloudResponse = await uploadMedia(profilePhoto.path);
-        const phototUrl = cloudResponse.secure_url;
-        const updatedData = {name, phototUrl};
-        const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {new:true}).select("-password");
+
+        // Update user data
+        const updatedData = { name, photoURL }; // Use correct field name
+        const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
+            new: true,
+        }).select("-password");
+
         return res.status(200).json({
-            success:true,
-            user:updatedUser,
-            message: "Profile Updated Successfully",
+            success: true,
+            user: updatedUser,
+            message: "Profile updated successfully.",
         });
     } catch (error) {
-        console.log(error);
-        return res.status(500).josn({
-            message:"Failed to update profile",
-            success:false,
-        })
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to update profile",
+        });
     }
-}
+};
