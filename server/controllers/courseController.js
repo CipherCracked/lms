@@ -1,4 +1,5 @@
 import { Course } from "../models/courseModel.js";
+import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
 
 export const createCourse = async(req, res)=>{
     try {
@@ -40,6 +41,61 @@ export const getCreatorCourses = async (req, res)=>{
         console.log(error);
         return res.status(500).json({
             message:"Failed to fetch Courses",
+        })
+    }
+}
+
+export const editCourse = async(req,res)=>{
+    try {
+        const courseId=req.params.courseId;
+        const {courseTilte, subTitle, description, category, courseLevel, coursePrice} = req.body;
+        const thumbnail=req.file;
+        let course = await Course.findById(courseId);
+        if (!course){
+            return res.status(404).json({
+                message: "Course not found",
+            })
+        }
+        let courseThumbnail;
+        if (thumbnail){
+            if (course.courseThumbnail){
+                const publicId = course.courseThumbnail.split("/").pop().split(".")[0];
+                await deleteMediaFromCloudinary(publicId);
+            }
+            courseThumbnail=await uploadMedia(thumbnail.path);
+        }
+
+        const updateData = {courseTilte, subTitle, description, category, courseLevel, coursePrice, courseThumbnail: courseThumbnail?.secure_url};
+        course = await Course.findByIdAndUpdate(courseId, updateData, {new:true});
+        return res.status(200).json({
+            course,
+            message: "Course Updated Successfully",
+        })
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message:"Failed to edit course",
+        })
+    }
+}
+
+export const getCourseById = async(req, res)=>{
+    try {
+        const {courseId} = req.params;
+        const course =  await Course.findById(courseId);
+        if (!course){
+            return res.status(404).json({
+                message:"Course not found",
+            })
+        }
+        return res.status(200).json({
+            course
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message:"Failed to fetch course by id",
         })
     }
 }

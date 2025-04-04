@@ -4,9 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useEditCourseMutation, useGetCourseByIdQuery } from '@/features/api/courseApi';
 import { Loader2 } from 'lucide-react';
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const CourseTab = () => {
     const [input, setInput] = useState({
@@ -18,26 +20,68 @@ const CourseTab = () => {
         coursePrice: "",
         courseThumbnail: "",
     });
-    const navigate=useNavigate();
+    const params = useParams();
+    const courseId = params.courseId;
+    const { data: courseByIdData, isLoading: courseByIdLoading } = useGetCourseByIdQuery(courseId, {refetchOnMountOrArgChange:true});
+    useEffect(() => {
+        if (courseByIdData) {
+            const course = courseByIdData?.course;
+            setInput({
+                courseTitle: course.courseTitle,
+                subTitle: course.subTitle,
+                description: course.description,
+                category: course.category,
+                courseLevel: course.courseLevel,
+                coursePrice: course.coursePrice,
+                courseThumbnail: "",
+            })
+        }
+    }, [courseByIdData])
+    const navigate = useNavigate();
+    const [editcourse, { data, isLoading, isSuccess, error }] = useEditCourseMutation();
+    const [previewThumbnail, setPrviewThumbnail] = useState("");
     const changeEventHandler = (e) => {
         const { name, value } = e.target;
         setInput({ ...input, [name]: value })
     }
-    const selectCategory=(value)=>{
-        setInput({...input, category:value});
+    const selectCategory = (value) => {
+        setInput({ ...input, category: value });
     }
-    const selectLevel=(value)=>{
-        setInput({...input, courseLevel:value});
+    const selectLevel = (value) => {
+        setInput({ ...input, courseLevel: value });
     }
-    const selectThumbnail=(e)=>{
-        const file=e.target.files?.[0];
-        if (file){
-            setInput({...input, courseThumbnail:file})
-            
+    const selectThumbnail = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setInput({ ...input, courseThumbnail: file })
+            const fileReader = new FileReader();
+            fileReader.onloadend = () => setPrviewThumbnail(fileReader.result);
+            fileReader.readAsDataURL(file);
         }
     }
+    const updateCourseHandler = async () => {
+        const formData = new FormData();
+        formData.append("courseTitle", input.courseTitle);
+        formData.append("subTitle", input.subTitle);
+        formData.append("description", input.description);
+        formData.append("category", input.category);
+        formData.append("courseLevel", input.courseLevel);
+        formData.append("coursePrice", input.coursePrice);
+        formData.append("courseThumbnail", input.courseThumbnail);
+        await editcourse({ formData, courseId });
+    }
+
+    useEffect(() => {
+        if (isSuccess) {
+            toast.success(data.message || "Course Updated Successfully");
+        }
+        if (error) {
+            toast.error(error.data.message || "Failed to update course")
+        }
+    }, [isSuccess, error])
+    if (courseByIdLoading) return <Loader2 className='h-4 w-4 animate-spin'/>
     const isPublished = false;
-    const isLoading=true;
+    // const isLoading = false;
     return (
         <Card>
             <CardHeader className="flex flex-row justify-between">
@@ -134,34 +178,40 @@ const CourseTab = () => {
                         <div>
                             <Label>Price in (INR)</Label>
                             <Input
-                            type="number"
-                            name="coursePrice"
-                            value={input.coursePrice}
-                            onChange={changeEventHandler}
-                            placeholder="199"
-                            className="w-fit"
+                                type="number"
+                                name="coursePrice"
+                                value={input.coursePrice}
+                                onChange={changeEventHandler}
+                                placeholder="199"
+                                className="w-fit"
                             />
                         </div>
                     </div>
                     <div>
                         <Label>Course Thumbnail</Label>
                         <Input
-                        type="file"
-                        accept="image/*"
-                        className="w-fit"
+                            type="file"
+                            accept="image/*"
+                            className="w-fit"
+                            onChange={selectThumbnail}
                         />
+                        {
+                            previewThumbnail && (
+                                <img src={previewThumbnail} className='e-64 my-2' alt='Course Thumbnail' />
+                            )
+                        }
                     </div>
                     <div>
-                        <Button variant="outline" onClick={()=>navigate("../course")}>Cancel</Button>
-                        <Button disabled={isLoading}>
+                        <Button variant="outline" onClick={() => navigate("../course")}>Cancel</Button>
+                        <Button disabled={isLoading} onClick={updateCourseHandler}>
                             {
-                                isLoading?
-                                <>
-                                <Loader2 className='mr-2 animate-spin h-4 w-4'/>
-                                Please Wait
-                                </>
-                                :
-                                "Save"
+                                isLoading ?
+                                    <>
+                                        <Loader2 className='mr-2 animate-spin h-4 w-4' />
+                                        Please Wait
+                                    </>
+                                    :
+                                    "Save"
                             }
                         </Button>
                     </div>
