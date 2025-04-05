@@ -5,7 +5,7 @@ import userRoute from "./routes/userRoutes.js"
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import courseRoute from "./routes/courseRoutes.js";
-
+import mediaRoute from "./routes/mediaRoutes.js";
 dotenv.config({});
 
 connectDB();
@@ -20,6 +20,7 @@ app.use(cors({
 }));
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/course", courseRoute);
+app.use("/api/v1/media", mediaRoute);
 
 app.listen(PORT, ()=>{
     console.log(`server listening at ${PORT}`);
