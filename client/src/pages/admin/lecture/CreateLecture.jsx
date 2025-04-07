@@ -29,7 +29,9 @@ const CreateLecture = () => {
         }
     }, [isSuccess, error])
     console.log(lectureData);
-
+    useEffect(()=>{
+        refetch();
+    }, [])
     return (
         <div className='flex-1 mx-10'>
             <div className='mb-4'>
