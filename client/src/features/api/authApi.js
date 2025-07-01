@@ -67,7 +67,14 @@ export const authApi = createApi({
                 body: formData,
                 credentials:"include",
             })
-        })
+        }),
+        enrollInCourse: builder.mutation({
+            query: (courseId) => ({
+                url: `/enroll/${courseId}`,
+                method: 'POST',
+            }),
+            invalidatesTags: ['User'],
+        }),
     }),
 });
 
@@ -77,4 +84,5 @@ export const {
     useLogoutUserMutation,
     useLoadUserQuery,
     useUpdateUserMutation,
+    useEnrollInCourseMutation,
 } = authApi;

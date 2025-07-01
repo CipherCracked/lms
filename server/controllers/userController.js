@@ -1,17 +1,27 @@
 import {User} from "../models/userModel.js";
+import {Course} from "../models/courseModel.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/generateToken.js";
 import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
 
 export const register = async(req, res) =>{
     try {
-        const {name, email, password} = req.body;
+        const {name, email, password, role} = req.body;
         if (!name || !email || !password){
             return res.status(400).json({
                 success: false,
                 message: "All fields are required to be filled.",
             })
         }
+        
+        // Validate role if provided
+        if (role && !["student", "instructor"].includes(role)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid role. Must be 'student' or 'instructor'.",
+            })
+        }
+        
         const user= await User.findOne({email});
         if (user){
             return res.status(400).json({
@@ -20,7 +30,12 @@ export const register = async(req, res) =>{
             })
         }
         const hashedPassword= await bcrypt.hash(password,10);
-        await User.create({name:name, email:email, password:hashedPassword});
+        await User.create({
+            name: name, 
+            email: email, 
+            password: hashedPassword,
+            role: role || "student" // Default to student if no role provided
+        });
         return res.status(200).json({
             success:true,
             message: "Account Created Successfully",
@@ -153,4 +168,40 @@ export const updateProfile = async (req, res) => {
             message: "Failed to update profile",
         });
     }
+};
+
+export const enrollInCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const userId = req.id;
+
+    // Check if course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Check if user is already enrolled
+    const user = await User.findById(userId);
+    if (user.enrolledCourses.includes(courseId)) {
+      return res.status(400).json({ message: 'Already enrolled in this course' });
+    }
+
+    // Add course to user's enrolled courses
+    user.enrolledCourses.push(courseId);
+    await user.save();
+
+    // Add user to course's enrolled students
+    course.enrolledStudents.push(userId);
+    await course.save();
+
+    return res.status(200).json({
+      message: 'Successfully enrolled in course',
+      user: user
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: 'Failed to enroll in course' });
+  }
 };

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useEditCourseMutation, useGetCourseByIdQuery } from '@/features/api/courseApi';
+import { useEditCourseMutation, useGetCourseByIdQuery, usePublishCourseMutation } from '@/features/api/courseApi';
 import { Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
@@ -19,13 +19,16 @@ const CourseTab = () => {
         courseLevel: "",
         coursePrice: "",
         courseThumbnail: "",
+        isPublished: false,
     });
     const params = useParams();
     const courseId = params.courseId;
-    const { data: courseByIdData, isLoading: courseByIdLoading } = useGetCourseByIdQuery(courseId, {refetchOnMountOrArgChange:true});
+    const { data: courseByIdData, isLoading: courseByIdLoading, refetch} = useGetCourseByIdQuery(courseId, {refetchOnMountOrArgChange:true});
+    const [publishCourse, {data:publishData}] = usePublishCourseMutation();
     useEffect(() => {
         if (courseByIdData) {
             const course = courseByIdData?.course;
+            console.log(course);
             setInput({
                 courseTitle: course.courseTitle,
                 subTitle: course.subTitle,
@@ -34,6 +37,7 @@ const CourseTab = () => {
                 courseLevel: course.courseLevel,
                 coursePrice: course.coursePrice,
                 courseThumbnail: "",
+                isPublished: course.isPublished,
             })
         }
     }, [courseByIdData])
@@ -70,7 +74,17 @@ const CourseTab = () => {
         formData.append("courseThumbnail", input.courseThumbnail);
         await editcourse({ formData, courseId });
     }
-
+    const publishStatusHandler = async(action)=>{
+        try {
+            const res = await publishCourse({courseId, query:action});
+            if (res.data){
+                toast.success(res.data.message);
+                refetch();
+            }
+        } catch (error) {
+            toast.error("Failed to Publish or Unpublish the Course");
+        }
+    }
     useEffect(() => {
         if (isSuccess) {
             toast.success(data.message || "Course Updated Successfully");
@@ -80,8 +94,6 @@ const CourseTab = () => {
         }
     }, [isSuccess, error])
     if (courseByIdLoading) return <Loader2 className='h-4 w-4 animate-spin'/>
-    const isPublished = false;
-    // const isLoading = false;
     return (
         <Card>
             <CardHeader className="flex flex-row justify-between">
@@ -92,8 +104,8 @@ const CourseTab = () => {
                     </CardDescription>
                 </div>
                 <div className='space-x-2'>
-                    <Button variant="outline">
-                        {isPublished ?
+                    <Button variant="outline" disabled={courseByIdData.course.lectures.length===0}onClick={()=>publishStatusHandler(courseByIdData?.course.isPublished ? "false" : "true")}>
+                        {courseByIdData.course.isPublished ?
                             "Unpublish" :
                             "Publish"}
                     </Button>

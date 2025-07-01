@@ -1,6 +1,7 @@
 import { Course } from "../models/courseModel.js";
 import { Lecture } from "../models/lectureModel.js";
 import { deleteMediaFromCloudinary, deleteVideoFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
+import { User } from "../models/userModel.js";
 
 export const createCourse = async(req, res)=>{
     try {
@@ -85,13 +86,15 @@ export const getCourseById = async(req, res)=>{
     try {
         const {courseId} = req.params;
         const course =  await Course.findById(courseId);
+        const creator = await User.findById(course.creator).select("name photoURL");
         if (!course){
             return res.status(404).json({
                 message:"Course not found",
             })
         }
         return res.status(200).json({
-            course
+            course,
+            creator,
         })
     } catch (error) {
         console.log(error);
@@ -245,13 +248,33 @@ export const togglePublishCourse = async(req, res)=>{
         }
         course.isPublished=publish==="true";
         await course.save();
-        return res.staus(200).json({
+        return res.status(200).json({
             message: "Course status updated",
         })
     } catch (error) {
         console.log(error);
         return res.status(500).json({
             message: "Failed to update status",
+        })
+    }
+}
+
+export const getPublishedCourse = async(req, res)=>{
+    try {
+        const courses = await Course.find({isPublished:true}).populate({path:"creator", select: "name photoURL"})
+        if (!courses){
+            return res.status(404).json({
+                message: "Courses not Found",
+            })
+        }
+        return res.status(200).json({
+            courses,
+            message: "Courses Found",
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Failed to get published courses",
         })
     }
 }

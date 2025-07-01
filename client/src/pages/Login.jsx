@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
     Tabs,
     TabsContent,
@@ -24,7 +25,7 @@ import { toast } from "sonner"
 
 const Login = () => {
     const [loginInput, setLoginInput] = useState({ email: "", password: "" });
-    const [signupInput, setSignupInput] = useState({ name: "", email: "", password: "" });
+    const [signupInput, setSignupInput] = useState({ name: "", email: "", password: "", role: "student" });
     const [registerUser, { data: registerData, error: registerError, isLoading: registerIsloading, isSuccess: registerIsSuccess }] = useRegisterUserMutation();
     const [loginUser, { data: loginData, error: loginError, isLoading: loginIsLoading, isSuccess: loginIsSuccess }] = useLoginUserMutation();
     const navigate = useNavigate();
@@ -36,6 +37,12 @@ const Login = () => {
         else {
             setLoginInput({ ...loginInput, [name]: value });
         }
+    }
+    const handleRoleChange = (checked) => {
+        setSignupInput({ 
+            ...signupInput, 
+            role: checked ? "instructor" : "student" 
+        });
     }
     const handleSubmit = async(type) => {
         const inputData = type ==="signup"?signupInput:loginInput;
@@ -103,6 +110,21 @@ const Login = () => {
                                     name="password"
                                     value={signupInput.password} />
                             </div>
+                            <div className="flex items-center space-x-2 pt-2">
+                                <Checkbox 
+                                    id="instructor" 
+                                    checked={signupInput.role === "instructor"}
+                                    onCheckedChange={handleRoleChange}
+                                />
+                                <Label htmlFor="instructor" className="text-sm font-normal">
+                                    Register as Instructor
+                                </Label>
+                            </div>
+                            {signupInput.role === "instructor" && (
+                                <p className="text-xs text-gray-500">
+                                    As an instructor, you can create and manage courses.
+                                </p>
+                            )}
                         </CardContent>
                         <CardFooter>
                             <Button disabled={registerIsloading} onClick={() => handleSubmit('signup')}>
@@ -151,7 +173,7 @@ const Login = () => {
                                 {
                                     loginIsLoading?(
                                         <>
-                                        <Loader2 classname="mr-2 h-4 w-4 animate-spin"/>Please Wait
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin"/>Please Wait
                                         </>
                                     ):"Login"
                                 }

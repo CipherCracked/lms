@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import Course from './Course'
 import { useLoadUserQuery, useUpdateUserMutation } from '@/features/api/authApi'
+import { useGetCourseByIdQuery } from '@/features/api/courseApi'
 import { toast } from 'sonner'
 
 const Profile = () => {
@@ -117,17 +118,45 @@ const Profile = () => {
                 </div>
             </div>
             <div>
-                <h1 className='font-medium text-lg'>Courses you are enrolled in</h1>
+                <h1 className='font-medium text-lg'>Courses you are enrolled in ({user?.enrolledCourses?.length || 0})</h1>
                 <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-5'>
                     {
-                        user?.enrolledCourses.length === 0 ? (
-                            <h1>You are not enrolled in any course yet.</h1>
-                        ) : user?.enrolledCourses.map((course, index) => (<Course course={course} key={course._id} />))
+                        !user?.enrolledCourses || user.enrolledCourses.length === 0 ? (
+                            <div className="col-span-full text-center py-8">
+                                <h1 className="text-gray-500">You are not enrolled in any course yet.</h1>
+                                <p className="text-sm text-gray-400 mt-2">Start learning by enrolling in courses!</p>
+                            </div>
+                        ) : (
+                            user.enrolledCourses.map((courseId, index) => (
+                                <EnrolledCourseCard key={courseId} courseId={courseId} />
+                            ))
+                        )
                     }
                 </div>
             </div>
         </div>
     )
 }
+
+// Component to fetch and display individual enrolled course
+const EnrolledCourseCard = ({ courseId }) => {
+    const { data, isLoading, error } = useGetCourseByIdQuery(courseId);
+    
+    if (isLoading) {
+        return (
+            <div className="bg-gray-200 dark:bg-gray-700 rounded-lg h-48 animate-pulse"></div>
+        );
+    }
+    
+    if (error || !data?.course) {
+        return (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <p className="text-red-600 dark:text-red-400 text-sm">Course not found</p>
+            </div>
+        );
+    }
+    
+    return <Course course={data.course} />;
+};
 
 export default Profile

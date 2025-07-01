@@ -48,7 +48,9 @@ const LectureTab = () => {
                         setUploadProgress(Math.round((loaded * 100) / total));
                     }
                 });
-                if (res.data.data.success) {
+                console.log(res);
+                if (res.data.success) {
+                    console.log(res)
                     setVideoInfo({ videoUrl: res.data.data.url, publicId: res.data.data.public_id });
                     setBtnDisable(false);
                     toast.success(res.data.message);
